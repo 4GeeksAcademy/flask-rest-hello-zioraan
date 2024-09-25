@@ -48,16 +48,11 @@ def handle_getting_people():
     return jsonify(person_dictionaries), 200
 
 @app.route('/people/<int:people_id>', methods=['GET'])
-def handle_getting_a_person(id):
+def handle_getting_a_person(person_id):
 #get a single person
-    person_info = Person.query.get({"id": id})
-    person_dictionary = []
-    for person in person_info:
-        person_dictionary.append(
-            person.serialize()
-        )
-    
-    return jsonify(person_dictionary), 200
+    person_info = Person.query.get({"id": person_id})
+    return jsonify(person_info.serialize()), 200
+
 
 @app.route('/planets', methods=['GET'])
 def handle_getting_planets():
@@ -71,35 +66,54 @@ def handle_getting_planets():
     return jsonify(planet_dictionaries), 200
 
 @app.route('/planets/<int:planet_id>', methods=['GET'])
-def handle_getting_a_planet(id):
+def handle_getting_a_planet(planet_id):
 #get a single planet
-    planet_info = Person.query.get({"id": id})
-    planet_dictionary = []
-    for planet in planet_info:
-        planet_dictionary.append(
-        planet.serialize()
-    )
-    return jsonify(planet_dictionary), 200
+    planet_info = Planet.query.get({"id": planet_id})
+    return jsonify(planet_info.serialize()), 200
 
 @app.route('/users', methods=['GET'])
 def handle_getting_users():
 #get ALL users
-    return jsonify(response_body), 200
+    users = User.query.all()
+    return jsonify([user.serialize() for user in users]), 200
 
-@app.route('/users/favorites', methods=['GET'])
-def handle_getting_current_favorites():
+@app.route('/users/favorites/<int:user_id>', methods=['GET'])
+def handle_getting_current_favorites(user_id):
 #get ALL favorites of user
-    return jsonify(response_body), 200
+    favorites = Favorite.query.filter_by(user_id=user_id).all()
+    return jsonify([favorite.serialize() for favorite in favorites]), 200
 
 @app.route('/favorite/planet/<int:planet_id>', methods=['POST', 'DELETE'])
-def handle_adding_favorite_planet():
+def handle_favorite_planet(planet_id):
 #add planet to current user's favorites
-    return jsonify(response_body), 200
+    if request.method == "POST":
+        user_id = request.json.get('user_id')
+        favorite = Favorite(user_id=user_id, planet_id=planet_id)
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify(favorite.serialize()), 201
+    else:
+        user_id = request.json.get('user_id')
+        favorite = Favorite.query.filter_by(user_id=user_id, planet_id=planet_id).first()
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({"msg": "Favorite planet deleted"}), 200
 
 @app.route('/favorite/people/<int:people_id>', methods=['POST', 'DELETE'])
-def handle_adding_favorite_people():
+def handle_favorite_people(people_id):
 #add planet to current user's favorites
-    return jsonify(response_body), 200
+    if request.method == "POST":
+        user_id = request.json.get('user_id')
+        favorite = Favorite(user_id=user_id, character_id=people_id)
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify(favorite.serialize()), 201
+    else:
+        user_id = request.json.get('user_id')
+        favorite = Favorite.query.filter_by(user_id=user_id, character_id=people_id).first()
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({"msg": "Favorite person deleted"}), 200
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
